@@ -1,0 +1,18 @@
+{
+  "name": "deobfuscator-js2",
+  "version": "1.0.0",
+  "description": "deobfuscator",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "zyxKoo",
+  "license": "ISC",
+  "dependencies": {
+    "@babel/core": "^7.14.6",
+    "@babel/generator": "^7.14.5",
+    "@babel/parser": "^7.14.7",
+    "@babel/traverse": "^7.14.5",
+    "@babel/types": "^7.14.5"
+  }
+}
