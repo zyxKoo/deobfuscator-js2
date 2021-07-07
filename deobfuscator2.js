@@ -8,8 +8,8 @@ const types = require('@babel/types');
 const utils = {
     /**
      * 获取 Literal 类型的节点
-     * @param {object} obj
-     * @returns {Node|null} NumericLiteral | StringLiteral | BooleanLiteral
+     * @param {Object} obj
+     * @returns {NumericLiteral|StringLiteral|BooleanLiteral|null}
      */
     getLiteralNode(obj) {
         let typeName = typeof obj;
@@ -25,8 +25,8 @@ const utils = {
         }
     },
     /**
-     *获取 Literal 值
-     * @param {Node} node StringLiteral | Identifier
+     * 获取 Literal 值
+     * @param {StringLiteral|Identifier} node
      * @returns {string}
      */
     getStringLiteralValue(node) {
@@ -46,9 +46,9 @@ const utils = {
     },
     /**
      * 寻找属性(自动判断 key 类型)
-     * @param {array} properties
+     * @param {ObjectProperty[]} properties
      * @param {string} name
-     * @returns {Node|null}
+     * @returns {ObjectProperty|null}
      */
     findProperty(properties, name) {
         for (let property of properties) {
@@ -73,7 +73,7 @@ const utils = {
     },
     /**
      * 转换到参1数组指定成员
-     * @param {array} arguments_
+     * @param {Identifier[]} arguments_
      * @param {string} argumentName
      * @returns {number}
      */
@@ -210,6 +210,14 @@ function optimize(jsCode) {
                 if (destPath) {
                     context.addEncryptFunction(destPath);
                 }
+            }
+        },
+        VariableDeclaration(path) {
+            // var a,b; -> var a; var b;
+            if (path.node.declarations.length > 1) {
+                let kind = path.node.kind;
+                let newNodes = path.node.declarations.map(value => types.variableDeclaration(kind, [value]));
+                path.replaceInline(newNodes);
             }
         },
         enter(path) {
@@ -377,7 +385,7 @@ function optimize(jsCode) {
         ConditionalExpression: {
             exit(path) {
                 // 移除死代码
-                // e.g. ture?console.log('Action...'):console.log('No action');
+                // e.g. true?console.log('Action...'):console.log('No action');
                 let node = path.node;
                 if (node.test.type === 'BooleanLiteral') {
                     let newNode = node.test.value ? node.consequent : node.alternate;
@@ -985,6 +993,7 @@ function optimize(jsCode) {
                 if (path2) {
                     cache.coreRefPaths.push(path2);
                 }
+
                 cache.corePaths[destId.name] = path;
                 path1.skip();
             }
@@ -1019,7 +1028,7 @@ function optimize(jsCode) {
                     // a(123);
                     // ->
                     // 123
-                    let argumentIndex = indexOfArgument(statement.params, destNode.argument.name);
+                    let argumentIndex = utils.indexOfArgument(statement.params, destNode.argument.name);
                     if (argumentIndex > -1) {
                         return arguments_[argumentIndex];
                     }
