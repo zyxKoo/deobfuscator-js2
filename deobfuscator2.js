@@ -212,14 +212,6 @@ function optimize(jsCode) {
                 }
             }
         },
-        VariableDeclaration(path) {
-            // var a,b; -> var a; var b;
-            if (path.node.declarations.length > 1) {
-                let kind = path.node.kind;
-                let newNodes = path.node.declarations.map(value => types.variableDeclaration(kind, [value]));
-                path.replaceInline(newNodes);
-            }
-        },
         enter(path) {
             // 捕获 加密函数特征1
             if (context.isEncryptFunction(path)) {

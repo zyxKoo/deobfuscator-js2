@@ -4,7 +4,13 @@ Anti obfuscation JS code <https://obfuscator.io/>
 
 ## Usage
 
-Drag and drop files to `bin\deobfuscator2.bat`
+1. Install
 
-Input: `example.js`
-Output: `example-cleaned.js`
+    ```bash
+    npm i
+    ```
+
+2. Drag and drop files to `bin\deobfuscator2.bat`
+
+    Input: `example.js`
+    Output: `example-cleaned.js`
