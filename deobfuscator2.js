@@ -122,7 +122,6 @@ const utils = {
  * 优化代码
  * @param {string} jsCode
  * @returns {string}
- * @returns {string}
  */
 function optimize(jsCode) {
     let parseOptions = {};
@@ -179,8 +178,7 @@ function optimize(jsCode) {
         }
     };
 
-    // 加密函数可能后置到底部, 所以单独拎出来
-    let visitorDetectEncrypt = {
+    let visitorFirst = {
         SequenceExpression(path) {
             // (a(),b()) -> a(); b();
             if (path.parentPath.node.type !== 'ExpressionStatement') {
@@ -193,7 +191,10 @@ function optimize(jsCode) {
             }
 
             path.replaceInline(newNodes);
-        },
+        }
+    };
+    // 加密函数可能后置到底部, 所以单独拎出来
+    let visitorDetectEncrypt = {
         StringLiteral(path) {
             // 捕获 加密函数特征2
             if (path.node.value === 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+/='
@@ -240,7 +241,7 @@ function optimize(jsCode) {
                             cacheObj.prevKeyLength = propertyNameLength;
                         }
 
-                        if (propertyNameLength !== 5 || propertyNameLength !== cacheObj.prevKeyLength) {
+                        if (!(propertyNameLength === 2 || propertyNameLength === 5) || propertyNameLength !== cacheObj.prevKeyLength) {
                             delete cache.doubtedProxyPathInfos[objectName];
                         } else {
                             // 转换为ObjectProperty
@@ -311,7 +312,12 @@ function optimize(jsCode) {
                     //
                     let gr = generate(node);
                     let currentJsCode = gr.code.replace(/eval/, '');
-                    path.replaceInline(currentJsCode);
+                    try {
+                        path.replaceInline(currentJsCode);
+                    } catch (e) {
+                        console.warn('replace eval() fail: ' + path);
+                    }
+
                     return;
                 }
 
@@ -716,7 +722,11 @@ function optimize(jsCode) {
                 }
 
                 if (binding.referencePaths.length === 0) {
-                    path.remove();
+                    try {
+                        path.remove();
+                    } catch (e) {
+                        console.warn('path remove fail: ' + path);
+                    }
                 }
             }
         }
@@ -948,6 +958,7 @@ function optimize(jsCode) {
             // 找到上一个/下一个数组后紧跟的立即函数 (function(a,b){}) 可选
             let path1 = null;
             let path2 = null;
+            let isPath2After = false;
             let prevPaths = path.getAllPrevSiblings();
             let findPath2Callback = (value) => value.node.type === 'ExpressionStatement'
                 && value.node.expression.type === 'CallExpression'
@@ -963,6 +974,7 @@ function optimize(jsCode) {
                 let nextPaths = path.getAllNextSiblings();
                 pathIndex2 = nextPaths.findIndex(findPath2Callback);
                 path2 = nextPaths[pathIndex2];
+                isPath2After = true;
             } else {
                 path2 = prevPaths[pathIndex2];
             }
@@ -973,7 +985,7 @@ function optimize(jsCode) {
                 let gr1 = generate(path1.node)
                 let gr2 = path2 ? generate(path2.node) : {code: ''};
                 let gr3 = generate(node);
-                let code = gr1.code + gr2.code + gr3.code;
+                let code = gr1.code + (isPath2After ? gr3.code + gr2.code : gr2.code + gr3.code);
 
                 // 去除代码检测(会引起堆栈溢出) 只要正则表达式任意通过即可(e.g. .)
                 // - '\x5cw+\x20*\x5c(\x5c)\x20*{\x5cw+\x20*'
@@ -1071,6 +1083,7 @@ function optimize(jsCode) {
         },
     };
 
+    traverse(ast, visitorFirst);
     traverse(ast, visitorDetectEncrypt);
     traverse(ast, visitor);
     traverse(ast, visitorBeautify);
