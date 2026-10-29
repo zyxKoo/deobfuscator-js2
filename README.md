@@ -1,6 +1,6 @@
 # deobfuscator2
 
-Anti obfuscation JS code <https://obfuscator.io/>.
+Anti obfuscation JS code <https://obfuscator.io/>
 
 ## Usage
 
